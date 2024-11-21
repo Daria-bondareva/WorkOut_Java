@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:7.0.5
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: catalog
+    volumes:
+      - ./docker/mongodb/data:/data/db
+
+  catalog-service:
+    image: catalog
+    build:
+      context: ./catalog
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATA_MONGODB_HOST: mongo
+      SPRING_DATA_MONGODB_DATABASE: catalogservice
+      MONGO_PORT: 27017
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+    networks:
+      - WorkOut-network
+
+  review-service:
+    image: review
+    build:
+      context: ./review
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATA_MONGODB_HOST: mongo
+      SPRING_DATA_MONGODB_DATABASE: reviewservice
+      MONGO_PORT: 27017
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+    networks:
+      - WorkOut-network
+
+  api-gateway-service:
+    image: api-gateway-service
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    environment:
+      COURSES_URL: http://catalog-service:8080
+      TESTS_URL: http://review-service:8081
+    ports:
+      - "9000:9000"
+    networks:
+      - WorkOut-network
